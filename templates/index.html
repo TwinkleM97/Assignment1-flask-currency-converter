@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Currency Converter - Live Exchange Rates</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 100%;
+            transition: transform 0.3s ease;
+        }
+
+        .container:hover {
+            transform: translateY(-5px);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e1e1;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: #fff;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .currency-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .convert-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+
+        .convert-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .convert-btn:active {
+            transform: translateY(-1px);
+        }
+
+        .result {
+            margin-top: 30px;
+            padding: 25px;
+            background: linear-gradient(45deg, #4facfe, #00f2fe);
+            border-radius: 15px;
+            color: white;
+            text-align: center;
+            display: none;
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result h3 {
+            font-size: 1.8em;
+            margin-bottom: 10px;
+        }
+
+        .result-details {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+
+        .error {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: center;
+            display: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .api-info {
+            background: rgba(102, 126, 234, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: center;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 30px 20px;
+            }
+            
+            .currency-row {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💱 Currency Converter</h1>
+        <p class="subtitle">Live exchange rates</p>
+        
+        <form id="converterForm">
+            <div class="form-group">
+                <label for="amount">Amount</label>
+                <input type="number" id="amount" name="amount" step="0.01" min="0" placeholder="Enter amount" required>
+            </div>
+            
+            <div class="currency-row">
+                <div class="form-group">
+                    <label for="from_currency">From</label>
+                    <select id="from_currency" name="from_currency" required>
+                        {% for currency in currencies %}
+                        <option value="{{ currency }}" {% if currency == 'USD' %}selected{% endif %}>
+                            {{ currency }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="to_currency">To</label>
+                    <select id="to_currency" name="to_currency" required>
+                        {% for currency in currencies %}
+                        <option value="{{ currency }}" {% if currency == 'EUR' %}selected{% endif %}>
+                            {{ currency }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <button type="submit" class="convert-btn">Convert Currency</button>
+        </form>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Converting currency...</p>
+        </div>
+        
+        <div class="result" id="result">
+            <h3 id="resultAmount"></h3>
+            <div class="result-details">
+                <p><strong>Exchange Rate:</strong> <span id="exchangeRate"></span></p>
+                <p><strong>Data Source:</strong> <span id="dataSource"></span></p>
+                <p><strong>Updated:</strong> <span id="timestamp"></span></p>
+            </div>
+        </div>
+        
+        <div class="error" id="error">
+            <p id="errorMessage"></p>
+        </div>
+        
+        <!-- <div class="api-info">
+            <p><strong>API Endpoints Available:</strong></p>
+            <p>GET /api/convert?amount=100&from=USD&to=EUR</p>
+            <p>GET /api/currencies | GET /api/rates/USD | GET /health</p>
+        </div> -->
+    </div>
+
+    <script>
+        document.getElementById('converterForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const loading = document.getElementById('loading');
+            const result = document.getElementById('result');
+            const error = document.getElementById('error');
+            
+            // Show loading, hide previous results
+            loading.style.display = 'block';
+            result.style.display = 'none';
+            error.style.display = 'none';
+            
+            try {
+                const response = await fetch('/convert', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                loading.style.display = 'none';
+                
+                if (data.success) {
+                    // Show result
+                    document.getElementById('resultAmount').textContent = 
+                        `${data.original_amount} ${data.from_currency} = ${data.converted_amount} ${data.to_currency}`;
+                    document.getElementById('exchangeRate').textContent = 
+                        `1 ${data.from_currency} = ${data.exchange_rate} ${data.to_currency}`;
+                    document.getElementById('dataSource').textContent = 
+                        data.data_source === 'live_api' ? '🟢 Live API' : '🟡 Fallback Data';
+                    document.getElementById('timestamp').textContent = 
+                        new Date(data.timestamp).toLocaleString();
+                    
+                    result.style.display = 'block';
+                } else {
+                    // Show error
+                    document.getElementById('errorMessage').textContent = data.error;
+                    error.style.display = 'block';
+                }
+            } catch (err) {
+                loading.style.display = 'none';
+                document.getElementById('errorMessage').textContent = 'Network error: ' + err.message;
+                error.style.display = 'block';
+            }
+        });
+
+        // Adding swap functionality
+        function swapCurrencies() {
+            const fromCurrency = document.getElementById('from_currency');
+            const toCurrency = document.getElementById('to_currency');
+            
+            const temp = fromCurrency.value;
+            fromCurrency.value = toCurrency.value;
+            toCurrency.value = temp;
+        }
+
+        // Add swap button dynamically
+        window.addEventListener('load', function() {
+            const currencyRow = document.querySelector('.currency-row');
+            const swapBtn = document.createElement('button');
+            swapBtn.type = 'button';
+            swapBtn.innerHTML = '🔄';
+            swapBtn.style.cssText = `
+                position: absolute;
+                background: #667eea;
+                color: white;
+                border: none;
+                border-radius: 50%;
+                width: 40px;
+                height: 40px;
+                cursor: pointer;
+                font-size: 16px;
+                margin-left: -20px;
+                margin-top: 35px;
+                left: 50%;
+                transform: translateX(-50%);
+                transition: all 0.3s ease;
+                z-index: 10;
+            `;
+            swapBtn.onclick = swapCurrencies;
+            currencyRow.style.position = 'relative';
+            currencyRow.appendChild(swapBtn);
+        });
+    </script>
+</body>
+</html>
