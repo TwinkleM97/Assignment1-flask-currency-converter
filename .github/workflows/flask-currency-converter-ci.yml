@@ -3,7 +3,7 @@ name: Flask-Currency-Converter-CI-Twinkle-8894858
 on:
   pull_request:
     branches:
-      - assignment-1
+      - twinkle-8894858
 
 env:
   DOCKER_IMAGE_NAME: flask-currency-converter
